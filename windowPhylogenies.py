@@ -97,7 +97,7 @@ def parsePHYMLOutput(prefix, windowCoords):
 			stats = "NA"
 	return tree,stats,lnL
 
-def run_window_phylogeny(windowQueue, resultQueue, input_vcf, software, model, bootstraps, opt, outgroup, directory, output_temp, logfile, bootstrap_flag, max_missing=None, phyml_path=None, iqtree_path=None, test=False):
+def run_window_phylogeny(windowQueue, resultQueue, input_vcf, software, model, bootstraps, opt, outgroup, directory, output_temp, logfile, bootstrap_flag, max_missing=None, phyml_path=None, iqtree_path=None, test=False, ploidy=2):
 	global timePassed
 	global windowsTotal
 	global windowsQueued
@@ -106,7 +106,7 @@ def run_window_phylogeny(windowQueue, resultQueue, input_vcf, software, model, b
 			break
 		windowsQueued,window,samples,haploidize,heterozygotes = windowQueue.get()
 		vcf = VariantFile(input_vcf)
-		msa = fn.MSA.fromVcf(vcf, window['chrom'], window['start'], window['end'], samples=samples, haploidize = haploidize, heterozygotes = heterozygotes, index=0)
+		msa = fn.MSA.fromVcf(vcf, window['chrom'], window['start'], window['end'], samples=samples, haploidize = haploidize, heterozygotes = heterozygotes, index=0, ploidy=int(ploidy))
 		if max_missing:
 			msa.filterMSA(max_missing)
 		seqLen = msa.length
@@ -174,6 +174,8 @@ parser.add_argument("-r","--region", type=str, help="Restrict analyses to this r
 
 parser.add_argument("-w", "--window-size", help="Window size in bp.", type=int, metavar="bases")
 parser.add_argument("--step-size", help="Step size in bp.", type=int, metavar="bases")
+
+parser.add_argument("--ploidy", help="Ploidy of samples in the vcf file (1 or 2).", default=2)
 
 parser.add_argument("--haploidize", help="Combine/subsample diploid loci to one haploid sequence", action="store_true")
 parser.add_argument("--handle-heterozygotes", help="Either randomly sample an allele (random), use IUPAC codes (IUPAC), always take the first (first) or second (second) allele.", type=str, default="IUPAC") # changed this to heterozygotes only, keeping to avoid breaking
@@ -383,7 +385,7 @@ for thread in range(args.threads):
 	#vcfToSeqDict(vcf, window['chrom'], haploidize = haploidize, heterozygotes = heterozygotes, samples=samples, start=window['start'], end=window['end'])
 	worker =Process(target=run_window_phylogeny, args=(windowQueue, resultQueue, args.input, software, model, 
 	bootstraps, opt, outgroup, tmpdir, output_temp, logfile, bootstrap_flag, max_missing, args.phyml_path, 
-	args.iqtree_path, test,))
+	args.iqtree_path, test, args.ploidy,))
 	worker.daemon = True
 	worker.start()
 analysisStarted = True

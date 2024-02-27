@@ -72,7 +72,13 @@ def rename_tips(t,samplenames):
 	#	print(tip.attribute)
 	#	#tip.name = samplenames_dict[oldname]
 	return t
-			
+
+def getTips(tree):
+	tips = []
+	for tip in tree.traverse():
+		if tip.is_leaf():
+			tips.append(tip.name)
+	return tips
 
 
 parser = argparse.ArgumentParser(description="Various small tools to parse/process phylogenetic trees or list of such.")
@@ -83,6 +89,7 @@ parser.add_argument("--tree-list", help="Input treelist, one tree per line in ne
 
 # some arguments that can be used for both single tree input and treelist
 parser.add_argument('--taxa', help="Taxa to keep in output tree, prune out all other.")
+parser.add_argument('--remove-tips', help="Taxa to remove from output tree, separated by comma.")
 parser.add_argument('--outgroup', help="Outgroup taxon or taxa to root output tree by.")
 parser.add_argument('-o', '--outfile', help="File to write output to.", required=True)
 
@@ -108,6 +115,12 @@ if args.taxa:
 	taxa = parse_taxafile(args.taxa)
 	prune = True
 	sys.stderr.write('\nSubsetting all trees in input file to keep the following taxa: \n {}.\n'.format(','.join(taxa)))
+elif args.remove_tips:
+	taxa_rm = args.remove_tips.split(",")
+	taxa = [t for t in getTips(parse_tree(trees[0])) if not t in taxa_rm]
+	prune = True
+	sys.stderr.write('\nSubsetting all trees in input file to remove the following taxa: \n {}.\n'.format(','.join(taxa_rm)))
+	sys.stderr.write("\nKeeping the following taxa: \n {}.\n".format(','.join(taxa)))
 else:
 	prune = False
 if args.outgroup:

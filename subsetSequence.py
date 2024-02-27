@@ -39,7 +39,7 @@ else:
 regions = []
 if args.region:
 	# if a single region is given, add this to list of regiins, along with the output file
-	regions.append((int(args.region.split("-")[0] - args.index),int(args.region.split("-")[1]), args.strand, args.output))
+	regions.append((int(args.region.split("-")[0]) - args.index,int(args.region.split("-")[1]), args.strand, args.output))
 else:
 	# set suffix based on outformat
 	if args.out_format == "phylip":
@@ -72,6 +72,8 @@ else:
 			else:
 				filename = "{prefix}_{start}_{end}.{suffix}".format(prefix=args.output,start=f['start'],end=f['end'],suffix=suffix)
 			regions.append((start,end,strand,filename))
+	else:
+		regions.append((1,msa.length,args.strand,args.output))
 
 # check if samples/sequences to keep were given as an argument, otherwise take all samples from msa object
 samples = []

@@ -121,7 +121,7 @@ elif len(regions) == 1:
 		# if a ref genome is given, extrapolate the alignment on top of this now. only works when a region is specified for now!
 		ref = pysam.FastaFile(args.reference)
 		refseq = ref.fetch(chrom,start -1,end)
-		msa.addRefGenome(refseq,start,end,refname='reference', mask_uncalled = args.extrapolate_missing_sites)
+		msa.addRefGenome(refseq,start,end,refname='reference', mask_uncalled = args.extrapolate_missing_sites, strand=args.strand)
 	# write it to output
 	if args.out.endswith(("phy","phylip","phy.gz","phylip.gz")):
 		msa.writePhylip(args.out)
@@ -154,7 +154,7 @@ else:
 			ref = pysam.FastaFile(args.reference)
 			print(chrom,start,end)
 			refseq = ref.fetch(chrom,start -1,end)
-			msa.addRefGenome(refseq, start, end, refname='reference', mask_uncalled = args.extrapolate_missing_sites, strand = strand)
+			msa.addRefGenome(refseq, start, end, refname='reference', mask_uncalled = args.extrapolate_missing_sites, strand = args.strand)
 		# add to the list
 		msa_list.append(msa)
 	#print(msa_list)

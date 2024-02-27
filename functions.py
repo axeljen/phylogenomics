@@ -227,6 +227,24 @@ class Sequence:
 	def upperCase(self):
 		# will change all nucleotides to be of upper case in sequence
 		self.sequence = self.sequence.upper()
+	def distance(self, sequence):
+		# calculate the distance between to aligned sequences
+		# first make sure they're of the same length
+		if not len(self.sequence) == len(sequence.sequence):
+			sys.stderr.write("Error: sequences are not of the same length. Exiting.")
+			sys.exit(1)
+		# then calculate the distance
+		dist = 0
+		comparisons = 0
+		for i in range(0,len(self.sequence)):
+			(n1,n2) = self.sequence[i], sequence.sequence[i]
+			if n1 in ['-','?','N','n'] or n2 in ['-','?','N','n']:
+				continue
+			else:
+				comparisons += 1
+				if n1 != n2:
+					dist += 1
+		return dist, comparisons
 # class for storing multi sequence (alignment only for now, but should work fine with non-aligned as well?)
 class MSA:
 	def __init__(self, samples = [], file = None, chrom=None,start=None,end=None):
@@ -326,7 +344,7 @@ class MSA:
 		return msa
 	# fetch a vcf region and turn into an msa object
 	@classmethod
-	def fromVcf(cls,vcf,chrom,start,end,samples=None,haploidize=True,heterozygotes="IUPAC", padding="N", skip_indels = True, index = 1, verbosity='err', minsampleDP=None,maxsampleDP=None):
+	def fromVcf(cls,vcf,chrom,start,end,samples=None,haploidize=True,heterozygotes="IUPAC", padding="N", skip_indels = True, index = 1, verbosity='err', minsampleDP=None,maxsampleDP=None, ploidy=2):
 		# if sample is none take all samples
 		#print(samples)
 		if not samples:
@@ -340,7 +358,7 @@ class MSA:
 		# create a sequence object for all the samples
 		msa.sequences = {}
 		for sample in samples:
-			if haploidize:
+			if haploidize == True or ploidy == 1:
 				msa.sequences[sample] = Sequence(sample,meta = {'vcfsample':sample, 'haplotype':0,})
 			else:
 				msa.sequences[sample + "__1"] = Sequence(sample + "__1", meta = {'vcfsample':sample,'haplotype':0,})
@@ -406,25 +424,31 @@ class MSA:
 						missing_calls += 1
 						# if genotype is missing, add the specified missing letter
 						msa.sequences[seq.sample].addSequence(alleles[-1])
-					elif gt[0] != gt[1]:
-						if heterozygotes == "IUPAC":
-							# grab the iupac code corresponding to the heterozygot call
-							msa.sequences[seq.sample].addSequence(IUPAC((alleles[gt[0]],alleles[gt[1]])))
-						elif heterozygotes == "random":
-							# otherwise just take a random base
-							msa.sequences[seq.sample].addSequence(alleles[gt[random.randint(0,1)]])
-						elif heterozygotes == "first":
-							# always use the first allele
-							msa.sequences[seq.sample].addSequence(alleles[gt[0]])
-						elif heterozygotes == "second":
-							# always use the second allele
-							msa.sequences[seq.sample].addSequence(alleles[gt[1]])
+					if ploidy == 2:
+						if gt[0] != gt[1]:
+							if heterozygotes == "IUPAC":
+								# grab the iupac code corresponding to the heterozygot call
+								msa.sequences[seq.sample].addSequence(IUPAC((alleles[gt[0]],alleles[gt[1]])))
+							elif heterozygotes == "random":
+								# otherwise just take a random base
+								msa.sequences[seq.sample].addSequence(alleles[gt[random.randint(0,1)]])
+							elif heterozygotes == "first":
+								# always use the first allele
+								msa.sequences[seq.sample].addSequence(alleles[gt[0]])
+							elif heterozygotes == "second":
+								# always use the second allele
+								msa.sequences[seq.sample].addSequence(alleles[gt[1]])
+							else:
+								sys.stderr.write("Please provide a valid arument on how to handle heterozygote genotypes. Exiting.")
+								sys.exit(1)
 						else:
-							sys.stderr.write("Please provide a valid arument on how to handle heterozygote genotypes. Exiting.")
-							sys.exit(1)
-					else:
-						# if homozygous, just take the first genotype
+							# if homozygous, just take the first genotype
+							msa.sequences[seq.sample].addSequence(alleles[gt[0]])
+					elif ploidy == 1:
+						#print("Genotype for sequence " + seq.sample + ": " + alleles[gt[0]])
+						# if haploid, just take the first genotype
 						msa.sequences[seq.sample].addSequence(alleles[gt[0]])
+					
 			# add missingness info for subsequent filter opportunity
 			msa.missingness.append(missing_calls / len(msa.samples))
 		# check that lengths are ok before proceeding
@@ -550,10 +574,17 @@ class MSA:
 				else:
 					name = self.reference.sample
 				of.write(name + " " * 3 + self.reference.sequence + "\n")
-	def print(self, format = "fasta"):
+	def print(self, format = "fasta", positions=None):
 		if format == "fasta":
+			seqstring = ""
 			for seq in self.sequences.values():
-				print(">{sample}\n{sequence}".format(sample = seq.sample, sequence = seq.sequence))
+				if positions == None:
+					start,end = 0,self.length
+				else:
+					start,end = positions[0],positions[1]
+				#print(">{sample}\n{sequence}".format(sample = seq.sample, sequence = ''.join([i for i in seq.sequence[start:end]])))
+				seqstring += ">{sample}\n{sequence}\n".format(sample = seq.sample, sequence = ''.join([i for i in seq.sequence[start:end]]))
+			return seqstring
 		elif format == "phylip":
 			print("\t{}\t{}".format(len(self.sequences), self.length))
 			for seq in self.sequences.values():
@@ -561,6 +592,16 @@ class MSA:
 			self.writePhylip(sys.stdout)
 		else:
 			sys.stderr.write("Unknown format. can only print fasta or phylip.")
+	def sortSamples(self, sortorder):
+		# sort the samples in the alignment according to a given order
+		# first check that the samples are all in the alignment
+		if not set(sortorder) == set(self.samples):
+			sys.stderr.write("Error: samples in sortorder are not all in the alignment. Exiting.")
+			sys.exit(1)
+		# then sort the samples
+		self.samples = sortorder
+		# and sort the sequences dict accordingly
+		self.sequences = {sample: self.sequences[sample] for sample in sortorder}
 	def concatenateMSA(self,msa):
 		# make sure that both msa's contain the same samples
 		if not set(self.samples) == set(msa.samples):
@@ -580,6 +621,37 @@ class MSA:
 		if self.reference:
 			self.reference.addSequence(msa.reference.sequence)
 		self.checkAlnLength()
+	def distanceMatrix(self):
+		# function to calculate a distance matrix for all pairwise comparisons of sequences in the alignment
+		distmat = {s: {} for s in self.samples}
+		for i,sample1 in enumerate(self.samples):
+			for j,sample2 in enumerate(self.samples):
+				distmat[sample1][sample2] = {}
+				if i == j:
+					distmat[sample1][sample2] = 0
+				else:
+					# calculate distance between the two sequences
+					distmat[sample1][sample2]['count'],distmat[sample1][sample2]['n_comparisons'] = self.sequences[sample1].distance(self.sequences[sample2])
+					distmat[sample1][sample2]['distance'] = distmat[sample1][sample2]['count'] / distmat[sample1][sample2]['n_comparisons']
+		return distmat
+	def privateSubstitutions(self):
+		privsubs = {s: 0 for s in self.samples}
+		for i in range(self.length):
+			for sample in self.samples:
+				sample_allele = self.sequences[sample].sequence[i]
+				other_alleles = [self.sequences[sample2].sequence[i] for sample2 in self.samples if not sample2 == sample and not self.sequences[sample2].sequence[i] in ['N','n','-','?']]
+				if len(set(other_alleles)) == 0:
+					continue
+				elif sample_allele in other_alleles or sample_allele in ['N','n','-','?']:
+					continue
+				else:
+					print(sample)
+					print(sample_allele)
+					print(other_alleles)
+					privsubs[sample] += 1
+					
+		return privsubs					
+
 	def writePartitions(self,outfile,format="raxml"):
 		# function to write partition files, right now only tailored to raxml
 		with open(outfile, "w") as of:
