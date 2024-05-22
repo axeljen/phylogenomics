@@ -26,8 +26,8 @@ def unroot_tree(tree):
 	return tree
 
 # only include taxa in tree
-def prune_tree(tree, taxa):
-	tree.prune(taxa)
+def prune_tree(tree, taxa, preserve_branch_legnths=True):
+	tree.prune(taxa, preserve_branch_length=preserve_branch_legnths)
 	return tree
 
 def parse_tree(treestring):

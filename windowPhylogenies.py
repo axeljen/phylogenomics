@@ -185,7 +185,7 @@ parser.add_argument("--heterozygotes", help="Either randomly sample an allele (r
 parser.add_argument("--iqtree-path", help="If iqtree executable isn't in PATH, you can specify the absolute path here", metavar="path/to/iqtree", default="iqtree")
 parser.add_argument("--model", help="iqtree substitution model", default="GTR")
 parser.add_argument("--outgroup", help="Outgroup(s) for the tree construction, if desired", default=None, metavar="outgroup_seq1,outgroup_seq2")
-parser.add_argument("--bootstraps", help="Number of ultrarapid bootstraps to run in iqtree, defaults to none.", type=int, metavar="number_of_bootstraps")
+parser.add_argument("--bootstraps", help="Number of ultrarapid bootstraps to run in iqtree, defaults to none.", type=int, metavar="number_of_bootstraps", default = 0)
 
 #number of threads we're running on:
 parser.add_argument("-T", "--threads", help="Number of threads for parallel processing", type=int, default=1, metavar="threads")

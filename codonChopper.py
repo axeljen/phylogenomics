@@ -21,10 +21,16 @@ msa_1 = fn.MSA()
 msa_2 = fn.MSA()
 msa_3 = fn.MSA()
 
+# set whether we should warn or error on non-divisible by three
+if args.strict_triplets:
+	strict_triplets = "error"
+else:
+	strict_triplets = "warning"
+
 # chop up each sequence in the msa
 for seq in msa.sequences.values():
 	prefix = ''.join(os.path.basename(args.input).split(".")[0:-1])
-	codons = seq.splitCodons(offset = args.frame, not_divisible_by_three=args.strict_triplets)
+	codons = seq.splitCodons(offset = args.frame, not_divisible_by_three=strict_triplets)
 	#print(codons[0].sequence)
 	msa_1.addSample(name = codons[0].sample, seq = codons[0].sequence, meta = codons[0].meta)
 	#print(msa_1.sequences[msa_1.samples[0]].sequence)

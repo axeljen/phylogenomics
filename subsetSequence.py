@@ -58,7 +58,7 @@ else:
 				start,end = line.strip().split()
 				interfix = start + "_" + end
 				strand = "+"
-			regions.append((int(start - args.index),int(end),strand,"{prefix}_{interfix}.{suffix}".format(prefix=args.prefix,interfix=interfix,suffix=suffix)))
+			regions.append((int(int(start) - args.index),int(end),strand,"{prefix}_{interfix}.{suffix}".format(prefix=args.output,interfix=interfix,suffix=suffix)))
 	elif args.gff_file:
 		gff_all = fn.parseGFF(args.gff_file)
 		types = args.extract_types.split(",") if args.extract_types else set([k['feature_type'] for k in gff_all])
