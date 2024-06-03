@@ -164,6 +164,7 @@ if randsample:
 processed_trees = []
 for tree in trees:
 	t = parse_tree(tree)
+	print(t)
 	if prune:
 		t = prune_tree(t,taxa)
 	if args.outgroup:

@@ -71,9 +71,9 @@ else:
 				filename = "{prefix}_{name}_{start}_{end}.{suffix}".format(prefix=args.output,name=f['gene_name'],start=f['start'],end=f['end'],suffix=suffix)
 			else:
 				filename = "{prefix}_{start}_{end}.{suffix}".format(prefix=args.output,start=f['start'],end=f['end'],suffix=suffix)
-			regions.append((start,end,strand,filename))
+			regions.append((int(start) - int(args.index),end,strand,filename))
 	else:
-		regions.append((1,msa.length,args.strand,args.output))
+		regions.append((0,msa.length,args.strand,args.output))
 
 # check if samples/sequences to keep were given as an argument, otherwise take all samples from msa object
 samples = []
