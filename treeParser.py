@@ -26,8 +26,8 @@ def unroot_tree(tree):
 	return tree
 
 # only include taxa in tree
-def prune_tree(tree, taxa):
-	tree.prune(taxa)
+def prune_tree(tree, taxa, preserve_branch_legnths=True):
+	tree.prune(taxa, preserve_branch_length=preserve_branch_legnths)
 	return tree
 
 def parse_tree(treestring):
@@ -42,6 +42,8 @@ def parse_taxafile(taxafile):
 	taxa = []
 	with open(taxafile) as f:
 		for line in f.readlines():
+			if line.strip() == "":
+				continue
 			taxa.append(line.rstrip())
 	return taxa
 
@@ -80,6 +82,19 @@ def getTips(tree):
 			tips.append(tip.name)
 	return tips
 
+def addNodelabs(tree, numerical=False):
+	if numerical:
+		i = 0
+	for node in tree.traverse():
+		if node.is_leaf():
+			continue
+		else:
+			if numerical:
+				node.name = str(i)
+				i += 1
+			else:
+				node.name = "".join(node.get_leaf_names())
+	return tree
 
 parser = argparse.ArgumentParser(description="Various small tools to parse/process phylogenetic trees or list of such.")
 
@@ -99,6 +114,10 @@ parser.add_argument('--unroot', action="store_true", help="Removes root node and
 # 
 parser.add_argument('--only-topology', action="store_true", help="Use this to remove branchlengths and support values from the output tree.")
 parser.add_argument('--rename-tips', type=str, help="File with two columns, old_name'\t'new_name, given to rename the tip labels of the tree")
+
+# argument to label internal branches in the tree, either just numerical or by pasting all the tips in the clade
+parser.add_argument('--add-nodelabs', action="store_true", help="Add node labels to the tree, by pasting together all tips descending from node.")
+parser.add_argument('--add-nodenumbers', action="store_true", help="Add node labels to the tree, by numbering nodes in the order they are encountered.")
 
 #some arguments that can be used on a treelist input
 parser.add_argument('--randsample', type=int, help="If specified, N number of trees will be randomly sampled from input treelist.")
@@ -172,6 +191,12 @@ for tree in trees:
 		t = unroot_tree(t)
 	if args.rename_tips:
 		t = rename_tips(t,args.rename_tips)
+	if args.add_nodelabs:
+		t = addNodelabs(t)
+		outformat = 8
+	if args.add_nodenumbers:
+		t = addNodelabs(t,numerical=True)
+		outformat = 8
 	processed_trees.append(t.write(format=outformat))
 
 # and last write them all to output

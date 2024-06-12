@@ -96,7 +96,6 @@ def translate(seq, break_on_stop = False):
 				if break_on_stop:
 					sys.exit()
 		aaseq += aa
-	print(len(aaseq))
 	return aaseq
 
 # class for storing single sequence
@@ -245,6 +244,23 @@ class Sequence:
 				if n1 != n2:
 					dist += 1
 		return dist, comparisons
+	def missingness(self):
+		# calculate the proportion of missing data in this sequence
+		missing = 0
+		for i in self.sequence:
+			if i in ['-','?','N','n']:
+				missing += 1
+		return missing / len(self.sequence)
+	def containsInternalStopCodon(self):
+		# check if the sequence contains an internal stop codon
+		# first translate the sequence
+		aa = translate(self.sequence)
+		# remove the last one as this could be the real stop 
+		aa = aa[:-1]
+		if '*' in aa:
+			return True
+		else:
+			return False
 # class for storing multi sequence (alignment only for now, but should work fine with non-aligned as well?)
 class MSA:
 	def __init__(self, samples = [], file = None, chrom=None,start=None,end=None):
@@ -262,13 +278,24 @@ class MSA:
 	# check lengths of sequences
 	def checkAlnLength(self):
 		# function to quickly check that all sequences are of the same length, just as a sanity check
+		if len(self.sequences) == 0:
+			# if all sequences have been filtered out
+			sys.stderr.write("Error: no sequences in alignment. Exiting.\n")
+			sys.exit(1)
 		lengths = [len(i.sequence) for i in self.sequences.values()]
 		if len(set(lengths)) == 1:
 			self.length = lengths[0]
 		else:
 			# if they're not we should exit and print that something's up
-			sys.stderr.write("Sequences differ in length, which they shouldn't. exiting.")
+			sys.stderr.write("Sequences differ in length, which they shouldn't. Exiting.\n")
 			#sys.exit(1)
+		# use this function to update sequence missingness too
+		self.missingness = [0 for i in range(0,self.length)]
+		for i in range(0,self.length):
+			for seq in self.sequences.values():
+				if seq.sequence[i] in ['-','N','n','?']:
+					self.missingness[i] += 1
+			self.missingness[i] = self.missingness[i] / len(self.sequences)
 	# add sample
 	def addSample(self,name,seq,meta=None):
 		seq = Sequence(name,seq,meta = meta)
@@ -533,7 +560,10 @@ class MSA:
 		for seq in self.sequences.values():
 			seq.reverseComplement()
 	# function to write the alignment to fasta format
-	def writeFasta(self,filepath,wraplength = None):
+	def writeFasta(self,filepath,wraplength = None, names = None):
+		if names:
+			# rename before writing if prompted
+			self.renameSequences(names)
 		with open(filepath, "w") as of:
 			for seq in self.sequences.values():
 				if not wraplength:
@@ -554,7 +584,10 @@ class MSA:
 						of.write(chunk + "\n")
 		of.close()
 	# write phylip output
-	def writePhylip(self,filepath,strict=False):
+	def writePhylip(self,filepath,strict=False, names = None):
+		if names:
+			# rename before writing if prompted
+			self.renameSequences(names)
 		nseq = len(self.sequences)
 		if self.reference:
 			# if there's a reference sequence too, we add this to nseq
@@ -684,6 +717,8 @@ class MSA:
 			if not sample in self.sequences.keys():
 				sys.stderr.write("Error: sequence {} was not found in alignment.\n".format({sample}))
 				sys.exit(1)
+		# update missingness
+		self.checkAlnLength()
 	def subset(self,start,end,index=0):
 		for seq in self.sequences.values():
 			seq.subsetSequence(start,end,index)
@@ -719,7 +754,6 @@ class MSA:
 			print("Translating sequence {} to amino acids.\n".format(sample))
 			newseq = translate(seq.sequence, break_on_stop=False)
 			seq.sequence = newseq
-			print(len(seq.sequence))
 		self.checkAlnLength()
 	def removeTrailingStopCodon(self, remove_blindly=True):
 		# if remove blindly, simply remove the last three bases of each sequence
@@ -790,6 +824,13 @@ class MSA:
 			self.sequences[sample].sequence = filtered[sample]
 		# and check that the lengths are still ok
 		self.checkAlnLength()
+	def renameSequences(self, names):
+		# takes a dictionary where keys are old names and values are new names
+		# loop through the sequences and rename them
+		for old,new in names.items():
+			self.sequences[new] = self.sequences.pop(old)
+			self.sequences[new].sample = new
+
 
 
 

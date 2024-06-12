@@ -3,6 +3,16 @@ import sys
 import argparse
 import os
 
+def parseNames(namesfile):
+	names = {}
+	with open(namesfile) as f:
+		for line in f.readlines():
+			if line.strip() == "":
+				continue
+			oldname,newname = line.strip().split("\t")
+			names[oldname] = newname
+	return names
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-i', '--input', type=str, help='Input sequence.', required=True)
@@ -24,6 +34,10 @@ parser.add_argument('--out-format', type=str, default="phylip")
 
 parser.add_argument('-s', '--sequences', type=str, help="Optional: file listing the sequences to keep, one per line, or comma separated list.")
 
+parser.add_argument('--rename-sequences', type=str, help="File with two columns, old_name'\t'new_name, given to rename the sequences in the output file.", default = None)
+
+parser.add_argument('--trim-stop-codons', action="store_true", help="If specified, stop codons will be trimmed from the end of the sequences.")
+
 args = parser.parse_args()
 
 # read input file to msa object
@@ -35,6 +49,12 @@ else:
 	sys.stderr.write("Check input file format, need to be fasta or phylip.")
 	sys.exit()
 
+# if prompted to rename sequences, parse the file
+if args.rename_sequences:
+	names = parseNames(args.rename_sequences)
+else:
+	names = None
+	
 # make a list of the regions to extract
 regions = []
 if args.region:
@@ -58,7 +78,7 @@ else:
 				start,end = line.strip().split()
 				interfix = start + "_" + end
 				strand = "+"
-			regions.append((int(start - args.index),int(end),strand,"{prefix}_{interfix}.{suffix}".format(prefix=args.prefix,interfix=interfix,suffix=suffix)))
+			regions.append((int(int(start) - args.index),int(end),strand,"{prefix}_{interfix}.{suffix}".format(prefix=args.output,interfix=interfix,suffix=suffix)))
 	elif args.gff_file:
 		gff_all = fn.parseGFF(args.gff_file)
 		types = args.extract_types.split(",") if args.extract_types else set([k['feature_type'] for k in gff_all])
@@ -73,7 +93,7 @@ else:
 				filename = "{prefix}_{start}_{end}.{suffix}".format(prefix=args.output,start=f['start'],end=f['end'],suffix=suffix)
 			regions.append((start,end,strand,filename))
 	else:
-		regions.append((1,msa.length,args.strand,args.output))
+		regions.append((0,msa.length + 1,args.strand,args.output))
 
 # check if samples/sequences to keep were given as an argument, otherwise take all samples from msa object
 samples = []
@@ -107,14 +127,23 @@ if len(regions) > 0:
 		# update sequence length
 		msa_copy.checkAlnLength()
 		if region[3].endswith((".phy",".phylip")):
-			msa_copy.writePhylip(region[3])
+			# if trimming stop codons, do so here
+			if args.trim_stop_codons:
+				msa_copy.removeTrailingStopCodon()
+			msa_copy.writePhylip(region[3], names=names)
 		elif region[3].endswith((".fa",".fasta")):
-			msa_copy.writeFasta(region[3])
+			# if trimming stop codons, do so here
+			if args.trim_stop_codons:
+				msa_copy.removeTrailingStopCodon()
+			msa_copy.writeFasta(region[3], names=names)
 else:
+	# if trimming stop codons, do so here
+	if args.trim_stop_codons:
+		msa.removeTrailingStopCodon()
 	# just write the full msa object
 	if args.output.endswith((".phy",".phylip")):
-		msa.writePhylip(args.output)
+		msa.writePhylip(args.output, names=names)
 	elif args.output.endswith((".fa",".fasta")):
-		msa.writeFasta(args.output)
+		msa.writeFasta(args.output, names=names)
 
 sys.stderr.write("Done. Output written to {}.\n".format(args.output))
