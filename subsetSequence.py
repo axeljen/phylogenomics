@@ -68,10 +68,10 @@ else:
 			end = int(f['end'])
 			strand = f['strand']
 			if f['gene_name']:
-				filename = "{prefix}_{name}_{start}_{end}.{suffix}".format(prefix=args.output,name=f['gene_name'],start=f['start'],end=f['end'],suffix=suffix)
+				filename = "{prefix}_{name}_{start}_{end}.{suffix}".format(prefix=args.output,name=f['gene_name'],start=start+1,end=f['end'],suffix=suffix)
 			else:
-				filename = "{prefix}_{start}_{end}.{suffix}".format(prefix=args.output,start=f['start'],end=f['end'],suffix=suffix)
-			regions.append((int(start) - int(args.index),end,strand,filename))
+				filename = "{prefix}_{start}_{end}.{suffix}".format(prefix=args.output,start=start+1,end=f['end'],suffix=suffix)
+			regions.append((start,end,strand,filename))
 	else:
 		regions.append((0,msa.length,args.strand,args.output))
 

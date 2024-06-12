@@ -116,13 +116,27 @@ def run_window_phylogeny(windowQueue, resultQueue, input_vcf, software, model, b
 		msa.writePhylip(tempAlignment.name)
 		outprefix = os.path.join(directory, prefix)
 		tempAlignment.close()
+		# if the alignment is empty, skip this window
+		if seqLen == 0:
+			run_analysis = False
+		else:
+			run_analysis = True
 		if software == "phyml":
-			PHYMLCommand(phyml_path, model, opt, bootstraps, tempAlignment.name, directory, outprefix, logfile)
-			tree,stats,lnL = parsePHYMLOutput(tempAlignment.name, window)
+			if run_analysis:
+				PHYMLCommand(phyml_path, model, opt, bootstraps, tempAlignment.name, directory, outprefix, logfile)
+				tree,stats,lnL = parsePHYMLOutput(tempAlignment.name, window)
+			else:
+				tree = "NA"
+				stats = "NA"
+				lnL = "NA"
 			treeDict = {'window_number':str(window['window_number']), 'chrom': str(window['chrom']), 'start':str(int(window['start']) + 1), 'stop':str(window['end']), 'lnL': str(lnL), 'samples': str(nseq), 'sites':str(seqLen), 'tree':tree}
 		elif software == "iqtree":
-			IQTreeCommand(iqtree_path, model, bootstraps, tempAlignment.name, outgroup, outprefix, logfile, bootstrap_flag)
-			tree,nsites = parseIQTREEOutput(directory, outprefix, window)
+			if run_analysis:
+				IQTreeCommand(iqtree_path, model, bootstraps, tempAlignment.name, outgroup, outprefix, logfile, bootstrap_flag)
+				tree,nsites = parseIQTREEOutput(directory, outprefix, window)
+			else:
+				tree = "NA"
+				nsites = "NA"
 			treeDict = {'window_number':str(window['window_number']), 'chrom': str(window['chrom']), 'start':str(int(window['start']) + 1), 'stop':str(window['end']), 'sequences':str(nseq), 'sites':str(nsites), 'tree':tree}
 		open(output_temp, "a").write(str('\t'.join(treeDict.values())) + "\n")
 		#global resultsReceived
