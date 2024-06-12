@@ -122,9 +122,9 @@ class Sequence:
 		# check if it's divisible by three or not and act accordingly
 		if not len(self.sequence) % 3 == 0:
 			if not_divisible_by_three == 'warning':
-				sys.stderr.write('Warning: sequence {} of length {} is not divisible by three. Might result in erroneous codon chopping.'.format(self.sample,len(self.sequence)))
+				sys.stderr.write('Warning: sequence {} of length {} is not divisible by three. Might result in erroneous codon chopping.\n'.format(self.sample,len(self.sequence)))
 			else:
-				sys.stderr.write('Error: sequence {} of length {} is not divisible by three. Remove --strict-triplets to proceed anyway.'.format(self.sample,len(self.sequence)))
+				sys.stderr.write('Error: sequence {} of length {} is not divisible by three. Remove --strict-triplets to proceed anyway.\n'.format(self.sample,len(self.sequence)))
 				sys.exit()
 		seqs.append(Sequence(sample = self.sample, meta = {'info':"first_codonpos_concat"}, sequence = self.sequence[offset::3]))
 		seqs.append(Sequence(sample = self.sample, meta = {'info':"second_codonpos_concat"}, sequence = self.sequence[offset + 1::3]))
@@ -451,6 +451,7 @@ class MSA:
 						missing_calls += 1
 						# if genotype is missing, add the specified missing letter
 						msa.sequences[seq.sample].addSequence(alleles[-1])
+						continue
 					if ploidy == 2:
 						if gt[0] != gt[1]:
 							if heterozygotes == "IUPAC":
@@ -508,8 +509,8 @@ class MSA:
 		# double check so lengths are still ok
 		self.checkAlnLength()
 		# print how much we filtered out
-		sys.stderr.write("Filtered out {} sites with more than {} prop missing data\n".format(filtered,max_missingness))
-		sys.stderr.write("Filtered alignment length: {}\n".format(self.length))
+		#sys.stderr.write("Filtered out {} sites with more than {} prop missing data\n".format(filtered,max_missingness))
+		#sys.stderr.write("Filtered alignment length: {}\n".format(self.length))
 	def removePositions(self,positions):
 		# this functions takes a list of positions to remove from the alignment, and removes those from all sequences
 		for name,seq in self.sequences.items():

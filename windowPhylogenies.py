@@ -116,13 +116,27 @@ def run_window_phylogeny(windowQueue, resultQueue, input_vcf, software, model, b
 		msa.writePhylip(tempAlignment.name)
 		outprefix = os.path.join(directory, prefix)
 		tempAlignment.close()
+		# if the alignment is empty, skip this window
+		if seqLen == 0:
+			run_analysis = False
+		else:
+			run_analysis = True
 		if software == "phyml":
-			PHYMLCommand(phyml_path, model, opt, bootstraps, tempAlignment.name, directory, outprefix, logfile)
-			tree,stats,lnL = parsePHYMLOutput(tempAlignment.name, window)
+			if run_analysis:
+				PHYMLCommand(phyml_path, model, opt, bootstraps, tempAlignment.name, directory, outprefix, logfile)
+				tree,stats,lnL = parsePHYMLOutput(tempAlignment.name, window)
+			else:
+				tree = "NA"
+				stats = "NA"
+				lnL = "NA"
 			treeDict = {'window_number':str(window['window_number']), 'chrom': str(window['chrom']), 'start':str(int(window['start']) + 1), 'stop':str(window['end']), 'lnL': str(lnL), 'samples': str(nseq), 'sites':str(seqLen), 'tree':tree}
 		elif software == "iqtree":
-			IQTreeCommand(iqtree_path, model, bootstraps, tempAlignment.name, outgroup, outprefix, logfile, bootstrap_flag)
-			tree,nsites = parseIQTREEOutput(directory, outprefix, window)
+			if run_analysis:
+				IQTreeCommand(iqtree_path, model, bootstraps, tempAlignment.name, outgroup, outprefix, logfile, bootstrap_flag)
+				tree,nsites = parseIQTREEOutput(directory, outprefix, window)
+			else:
+				tree = "NA"
+				nsites = "NA"
 			treeDict = {'window_number':str(window['window_number']), 'chrom': str(window['chrom']), 'start':str(int(window['start']) + 1), 'stop':str(window['end']), 'sequences':str(nseq), 'sites':str(nsites), 'tree':tree}
 		open(output_temp, "a").write(str('\t'.join(treeDict.values())) + "\n")
 		#global resultsReceived
@@ -185,7 +199,7 @@ parser.add_argument("--heterozygotes", help="Either randomly sample an allele (r
 parser.add_argument("--iqtree-path", help="If iqtree executable isn't in PATH, you can specify the absolute path here", metavar="path/to/iqtree", default="iqtree")
 parser.add_argument("--model", help="iqtree substitution model", default="GTR")
 parser.add_argument("--outgroup", help="Outgroup(s) for the tree construction, if desired", default=None, metavar="outgroup_seq1,outgroup_seq2")
-parser.add_argument("--bootstraps", help="Number of ultrarapid bootstraps to run in iqtree, defaults to none.", type=int, metavar="number_of_bootstraps")
+parser.add_argument("--bootstraps", help="Number of ultrarapid bootstraps to run in iqtree, defaults to none.", type=int, metavar="number_of_bootstraps", default = 0)
 
 #number of threads we're running on:
 parser.add_argument("-T", "--threads", help="Number of threads for parallel processing", type=int, default=1, metavar="threads")
