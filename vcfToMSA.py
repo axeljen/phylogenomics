@@ -121,7 +121,7 @@ elif len(regions) == 1:
 		# if a ref genome is given, extrapolate the alignment on top of this now. only works when a region is specified for now!
 		ref = pysam.FastaFile(args.reference)
 		refseq = ref.fetch(chrom,start -1,end)
-		msa.addRefGenome(refseq,start,end,refname='reference', mask_uncalled = args.extrapolate_missing_sites, strand=args.strand)
+		msa.addRefGenome(refseq,start,end,refname='reference', mask_uncalled = args.extrapolate_missing_sites, strand=strand)
 	# write it to output
 	if args.out.endswith(("phy","phylip","phy.gz","phylip.gz")):
 		msa.writePhylip(args.out)
@@ -152,12 +152,10 @@ else:
 		if args.reference:
 			# if a ref genome is given, extrapolate the alignment on top of this now. only works when a region is specified for now!
 			ref = pysam.FastaFile(args.reference)
-			print(chrom,start,end)
 			refseq = ref.fetch(chrom,start -1,end)
-			msa.addRefGenome(refseq, start, end, refname='reference', mask_uncalled = args.extrapolate_missing_sites, strand = args.strand)
+			msa.addRefGenome(refseq, start, end, refname='reference', mask_uncalled = args.extrapolate_missing_sites, strand = strand)
 		# add to the list
 		msa_list.append(msa)
-	#print(msa_list)
 	if args.concat:
 		# concatenate alignments to a single one
 		msa = msa_list[0]
@@ -179,7 +177,6 @@ else:
 		else:
 			suffix = "phy"
 		for m in msa_list:
-			print(m.start)
 			outfile = args.out + "{}_{}_{}.{}".format(m.chrom,m.start,m.end,suffix)
 			if suffix == 'fa':
 				m.writeFasta(outfile)
