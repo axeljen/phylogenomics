@@ -860,13 +860,12 @@ def getChromLengths(vcf, only_contigs_with_records=True):
 			except:
 				pass
 	else:
-		contigs = all_contigs 
+		contigs = all_contigs
 	return contigs
 
 
 # and this one splits the output from previous function into windows
 def generateWindows(intervals, window, step_size):
-	print(intervals)
 	# first, if the intervals are given as a simle chrom: length dictionary, add 0 as start position to each such interval
 	if not type(intervals[list(intervals.keys())[0]]) is tuple:
 		for c in intervals.keys():
@@ -877,6 +876,7 @@ def generateWindows(intervals, window, step_size):
 	start = intervals[list(intervals.keys())[0]][0]
 	end = start + window
 	for c in intervals.keys():
+		print(c)
 		start = intervals[c][0]
 		length = intervals[c][1]
 		chrom = c
@@ -885,8 +885,8 @@ def generateWindows(intervals, window, step_size):
 			start = start + step_size
 			end = start + window if start + window < length else length
 			window_number = window_number + 1
-		else:
-			break
+		#else:
+		#	break
 	return windows
 
 # function to parse gff file into a list of features

@@ -192,7 +192,7 @@ parser.add_argument("--step-size", help="Step size in bp.", type=int, metavar="b
 parser.add_argument("--ploidy", help="Ploidy of samples in the vcf file (1 or 2).", default=2)
 
 parser.add_argument("--haploidize", help="Combine/subsample diploid loci to one haploid sequence", action="store_true")
-parser.add_argument("--handle-heterozygotes", help="Either randomly sample an allele (random), use IUPAC codes (IUPAC), always take the first (first) or second (second) allele.", type=str, default="IUPAC") # changed this to heterozygotes only, keeping to avoid breaking
+parser.add_argument("--handle-heterozygotes", help="DEPRACATED. Use heterozygotes instead.", type=str, default="IUPAC") # changed this to heterozygotes only, keeping to avoid breaking
 parser.add_argument("--heterozygotes", help="Either randomly sample an allele (random), use IUPAC codes (IUPAC), always take the first (first) or second (second) allele.", type=str, default="IUPAC")
 
 #arguments for running iqtree:
