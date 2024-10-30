@@ -111,7 +111,7 @@ def run_window_phylogeny(windowQueue, resultQueue, input_vcf, software, model, b
 			msa.filterMSA(max_missing)
 		seqLen = msa.length
 		nseq = len(msa.samples)
-		prefix = os.path.join(os.path.basename(directory) + "_" + str(window['start']) + "_" + str(window['end']))
+		prefix = os.path.join(os.path.basename(directory) + "_" + str(window['chrom']) + "_" + str(window['start']) + "_" + str(window['end']))
 		tempAlignment = tempfile.NamedTemporaryFile(mode="w", prefix=prefix, suffix=".phy", dir = directory, delete=False)
 		msa.writePhylip(tempAlignment.name)
 		outprefix = os.path.join(directory, prefix)
@@ -179,6 +179,8 @@ parser = argparse.ArgumentParser()
 #arguments for in and output:
 parser.add_argument("-i", "--input", help="Input vcf file (.vcf or .vcf.gz).", required=True, metavar="genotypes.vcf | genotypes.vcf.gz")
 parser.add_argument("-o", "--output", help="Output file.", required=True, metavar="output.tsv")
+
+parser.add_argument("--refindex", help="Fasta index (.fai) file for the reference genome, will be used to generate windows if contig lengths are not present in vcf header.", metavar="reference.fai", default=None)
 
 #arguments for subsetting and splitting alignment:
 parser.add_argument("--sequences", help="Headers of sequences to include, either as a file with one header per line, or in the command separated by commas.", metavar="<seq1,seq2,seq3>|seqs.file")
@@ -267,7 +269,7 @@ elif args.region:
 else:
 	sys.stderr.write("No interval file was supplied, will generate windows from the contigs in the vcf input.\n")
 	sys.stderr.write("Window size: {wsize}, step size: {stepsize}\n".format(wsize=str(args.window_size), stepsize=str(step_size)))
-	chroms = fn.getChromLengths(vcf)
+	chroms = fn.getChromLengths(vcf, reference_index = args.refindex)
 	regions = fn.generateWindows(chroms, int(args.window_size), step_size)
 windowsTotal = len(regions)
 if not args.bootstraps:
@@ -300,7 +302,7 @@ if not args.phyml:
 			sys.stderr.write("Running iqtree2.\n")
 			iqtree = "iqtree2"
 			bootstrap_flag = "-B"
-	logfile = args.output[:-4] + "_iqtree.log.txt"
+	logfile = args.output + "_iqtree.log.txt"
 	sys.stderr.write("Running phylogenies with IQTree.\n")
 	output_file.write("window\tchrom\tstart\tend\tsequences\tsites\ttree\n")
 else:

@@ -840,14 +840,30 @@ class MSA:
 				
 
 
-
+# function to parse .fai index file (or other file) with chrom-length in col 1 and 2
+def parseFai(fai):
+	chroms = {}
+	with open(fai) as f:
+		for line in f.readlines():
+			chrom,length = line.strip().split()[0:2]
+			chroms[chrom] = int(length)
+	return chroms
 
 # this one gets chromosomes and their lengths from a vcf file
-def getChromLengths(vcf, only_contigs_with_records=True):
+def getChromLengths(vcf, only_contigs_with_records=True,reference_index=None):
 	all_contigs = {contig: 0 for contig in list(vcf.header.contigs)}
 	# fetch all the chromosomes to begin with from the vcf header
 	for contig in all_contigs.keys():
 		length = vcf.header.contigs[contig].length
+		if length == None:
+			# try parsing the reference index and fetch the length from there
+			if reference_index:
+				refindex = parseFai(reference_index)
+				if contig in refindex.keys():
+					length = refindex[contig]
+			else:
+				sys.stderr.write("Error: chromosome length not found in vcf header, and no reference index provided. Exiting.")
+				sys.exit(1)
 		all_contigs[contig] = length
 	contigs = {}
 	if only_contigs_with_records:
